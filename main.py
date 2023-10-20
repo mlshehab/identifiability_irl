@@ -230,7 +230,7 @@ def check_weak_identifiability(reward_set, trajectories, env):
 if __name__ == '__main__':
 
     n_states = 3
-    n_actions = 1
+    n_actions = 2
     horizon = 4
     
     env = Env(n_states,n_actions,horizon, unique_start=True, deterministic = False)
@@ -239,6 +239,7 @@ if __name__ == '__main__':
     V, Q, pi = soft_bellman_operation(env,reward )
 
     traj = env.generate_trajectories()
+    print(traj[0])
     # print(len(traj))
     num_rewards = 10
 
