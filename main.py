@@ -227,23 +227,95 @@ def check_weak_identifiability(reward_set, trajectories, env):
         print("Not Weakly Identifiable -- Middle Right Branch Of the Tree")
         return 
 
+
+def construct_single_M(traj, env):
+    n_states = env.n_states
+    n_actions = env.n_actions
+    horizon = env.horizon
+    discount = env.discount
+
+    M = np.zeros((horizon, n_states*n_actions))
+
+    for i in range(horizon):
+        cur_state = traj[i][0]
+        cur_action = traj[i][1]
+
+        M[i][cur_state + n_states*cur_action] = discount**i
+    
+    return M
+
+def construct_entire_M(trajectories, env):
+    n_states = env.n_states
+    n_actions = env.n_actions
+    horizon = env.horizon
+    M = construct_single_M(trajectories[0], env)
+
+    for i, traj in enumerate(trajectories):
+        if i == 0:
+            continue
+        cur_M = construct_single_M(traj,env)
+        # print(cur_M.shape)
+        cur_M = np.ones((1,horizon))@cur_M
+
+        M = np.vstack((M,cur_M))
+
+    return M
+
+
+def shaped_reward(R, env):
+    n_states = env.n_states
+    n_actions = env.n_actions
+    discount = env.discount 
+
+    phi = 10*np.random.randn(n_states, 1)
+
+
+    shaped_reward = np.zeros_like(R)
+
+  
+    for a in range(n_actions):
+        
+        shaped_reward[:,a][:,None] = R[:,a][:,None] + discount*env.mdp_transition_matrices[a]@phi - phi
+
+    return shaped_reward
+
 if __name__ == '__main__':
 
-    n_states = 3
+    n_states = 4
     n_actions = 2
-    horizon = 4
+    horizon = 5
     
-    env = Env(n_states,n_actions,horizon, unique_start=True, deterministic = False)
+    env = Env(n_states,n_actions,horizon, unique_start=True, deterministic = True)
     reward = np.zeros(shape = (n_states,n_actions))
     reward[-1,:] = 10
     V, Q, pi = soft_bellman_operation(env,reward )
 
     traj = env.generate_trajectories()
-    print(traj[0])
+    # print(traj[0])
     # print(len(traj))
     num_rewards = 10
 
     R = [np.random.randn(env.n_states, env.n_actions) for i in range(num_rewards)]
-    R[-1] = R[-2] + 2
-    R[-10] = R[-2] + 10
-    check_weak_identifiability(R,traj,env)   
+
+    R = np.array([[1.0,1],
+                  [-1,-1],
+                  [-2,-2],
+                  [-3,-3]])
+
+    s_R = shaped_reward(R,env)
+   
+    # V_R, Q_R, pi_R = soft_bellman_operation(env,R )
+    # V_sR, Q_sR, pi_sR = soft_bellman_operation(env,s_R )
+
+    # print(traj[25])
+    # print(construct_single_M(traj[25], env))
+    M = construct_entire_M(traj, env)
+    Z = scipy.linalg.null_space(M)
+
+    print("hello")
+    # print(Z)
+
+
+    # R[-1] = R[-2] + 2
+    # R[-10] = R[-2] + 10
+    # check_weak_identifiability(R,traj,env)   
